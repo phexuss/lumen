@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 rezka_service = RezkaService(
     mirror_url=config.rezka.mirror_url,
     proxy={'http': config.rezka.proxy_url, 'https': config.rezka.proxy_url} if config.rezka.proxy_url else None,
-    timeout=config.rezka.timeout
+    timeout=config.rezka.timeout,
+    email=config.rezka.email,
+    password=config.rezka.password
 )
 
 cache_manager = CacheManager(

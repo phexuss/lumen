@@ -65,13 +65,31 @@ class RezkaServiceError(Exception):
 class RezkaService:
     """Async service for HDRezka operations"""
 
-    def __init__(self, mirror_url: str, proxy: Optional[Dict] = None, timeout: int = 30):
+    def __init__(self, mirror_url: str, proxy: Optional[Dict] = None, timeout: int = 30, email: Optional[str] = None, password: Optional[str] = None):
         self.mirror_url = mirror_url
         self.proxy = proxy or {}
         self.timeout = timeout
+        self.email = email
+        self.password = password
+        self.cookies = {}
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
+
+        # Login if credentials provided
+        if self.email and self.password:
+            self._login()
+
+    def _login(self):
+        """Login to HDRezka and store cookies"""
+        try:
+            from rezka_lib.HdRezkaApi import HdRezkaApi
+            api = HdRezkaApi(self.mirror_url, headers=self.headers, proxy=self.proxy)
+            if api.login(email=self.email, password=self.password):
+                self.cookies = api.cookies
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"HDRezka login failed: {e}")
 
     async def search(self, query: str) -> List[SearchResult]:
         """
@@ -90,7 +108,8 @@ class RezkaService:
             search_engine = HdRezkaSearch(
                 self.mirror_url,
                 proxy=self.proxy,
-                headers=self.headers
+                headers=self.headers,
+                cookies=self.cookies
             )
             return search_engine(query)
 
@@ -121,7 +140,7 @@ class RezkaService:
             RezkaServiceError: If loading fails
         """
         def _load():
-            rezka = HdRezkaApi(url, proxy=self.proxy, headers=self.headers)
+            rezka = HdRezkaApi(url, proxy=self.proxy, headers=self.headers, cookies=self.cookies)
             if not rezka.ok:
                 raise rezka.exception
             return rezka
@@ -185,7 +204,7 @@ class RezkaService:
             RezkaServiceError: If loading fails
         """
         def _load():
-            rezka = HdRezkaApi(url, proxy=self.proxy, headers=self.headers)
+            rezka = HdRezkaApi(url, proxy=self.proxy, headers=self.headers, cookies=self.cookies)
             if not rezka.ok:
                 raise rezka.exception
             return rezka.episodesInfo
@@ -216,7 +235,7 @@ class RezkaService:
             RezkaServiceError: If extraction fails
         """
         def _extract():
-            rezka = HdRezkaApi(url, proxy=self.proxy, headers=self.headers)
+            rezka = HdRezkaApi(url, proxy=self.proxy, headers=self.headers, cookies=self.cookies)
             if not rezka.ok:
                 raise rezka.exception
 
@@ -284,7 +303,7 @@ class RezkaService:
             RezkaServiceError: If extraction fails
         """
         def _extract():
-            rezka = HdRezkaApi(url, proxy=self.proxy, headers=self.headers)
+            rezka = HdRezkaApi(url, proxy=self.proxy, headers=self.headers, cookies=self.cookies)
             if not rezka.ok:
                 raise rezka.exception
 

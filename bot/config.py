@@ -33,6 +33,8 @@ class RezkaConfig:
     timeout: int
     max_retries: int
     proxy_url: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
 
 
 @dataclass
@@ -62,7 +64,9 @@ class Config:
             mirror_url=os.getenv("REZKA_MIRROR", "https://hdrezka.ag"),
             timeout=int(os.getenv("REZKA_TIMEOUT", "30")),
             max_retries=int(os.getenv("REZKA_MAX_RETRIES", "3")),
-            proxy_url=os.getenv("REZKA_PROXY_URL")
+            proxy_url=os.getenv("REZKA_PROXY_URL"),
+            email=os.getenv("REZKA_EMAIL"),
+            password=os.getenv("REZKA_PASSWORD")
         )
 
         self.cache = CacheConfig(
