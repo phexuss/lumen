@@ -4,16 +4,21 @@ Handles video streaming with proper headers to bypass hotlink protection
 """
 import asyncio
 import aiohttp
-from urllib.parse import unquote
+from urllib.parse import unquote, quote
 from fastapi import FastAPI, Query, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
 from typing import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 import logging
 
 from config import config
 
 logger = logging.getLogger(__name__)
+
+# Setup Jinja2 templates
+templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
 @asynccontextmanager
@@ -134,3 +139,35 @@ async def proxy_stream(
 async def health_check():
     """Health check endpoint"""
     return {"status": "ok", "service": "hdrezka-proxy"}
+
+
+@app.get("/watch", response_class=HTMLResponse)
+async def watch_video(
+    url: str = Query(..., description="CDN video URL"),
+    title: str = Query("Video", description="Video title"),
+    subtitle: str = Query("", description="Video subtitle (quality, translator, etc)")
+):
+    """
+    Video player page with video.js
+
+    Opens a full-screen HTML5 video player that streams through our proxy
+
+    Query params:
+        url: The CDN video URL (will be proxied)
+        title: Video title to display
+        subtitle: Additional info (quality, translator, season/episode)
+
+    Returns:
+        HTML page with video.js player
+    """
+    # Construct stream URL through our proxy
+    encoded_cdn_url = quote(url, safe='')
+    stream_url = f"{config.server.public_url}/stream?url={encoded_cdn_url}"
+
+    return templates.TemplateResponse("player.html", {
+        "request": {},  # Required by Jinja2Templates
+        "title": title,
+        "subtitle": subtitle,
+        "stream_url": stream_url
+    })
+

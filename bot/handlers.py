@@ -484,46 +484,37 @@ async def handle_resolution_selection(callback: CallbackQuery, state: FSMContext
                 resolution=resolution
             )
 
-        # Construct proxy URL (through Cloudflare) - now with proxy support in server.py
-        encoded_cdn_url = quote(stream_data.cdn_url, safe='')
-        proxy_url = f"{config.server.public_url}/stream?url={encoded_cdn_url}"
+        # Construct watch URL with video player
+        title_text = f"{stream_data.title}"
+        subtitle_parts = []
+        if stream_data.season and stream_data.episode:
+            subtitle_parts.append(f"S{stream_data.season:02d}E{stream_data.episode:02d}")
+        subtitle_parts.append(stream_data.translator_name)
+        subtitle_parts.append(stream_data.resolution)
+        subtitle_text = " • ".join(subtitle_parts)
 
-        logger.info(f"Sending video via proxy (with SOCKS5): {proxy_url[:100]}...")
+        watch_url = f"{config.server.public_url}/watch?url={quote(stream_data.cdn_url, safe='')}&title={quote(title_text)}&subtitle={quote(subtitle_text)}"
 
-        # Send video through proxy
+        logger.info(f"Sending video player link: {watch_url[:100]}...")
+
+        # Create inline button to open player
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="▶️ Смотреть", url=watch_url)]
+        ])
+
         caption_parts = [f"📺 {stream_data.title}"]
         if stream_data.season and stream_data.episode:
             caption_parts.append(f"S{stream_data.season:02d}E{stream_data.episode:02d}")
         caption_parts.append(f"🌐 {stream_data.translator_name}")
         caption_parts.append(f"📺 {stream_data.resolution}")
 
-        try:
-            sent_message = await callback.message.answer_video(
-                video=proxy_url,
-                caption=" • ".join(caption_parts),
-                supports_streaming=True
-            )
+        await callback.message.answer(
+            text=" • ".join(caption_parts) + "\n\n👆 Нажмите кнопку для просмотра",
+            reply_markup=keyboard
+        )
 
-            # Cache the file_id if video was sent successfully
-            if config.cache.enabled and sent_message.video:
-                file_id = sent_message.video.file_id
-                await cache_manager.cache_file_id(cache_key, file_id)
-                logger.info(f"Cached file_id: {file_id}")
-
-            await callback.message.delete()
-            await state.clear()
-
-        except Exception as e:
-            logger.error(f"Failed to send video, falling back to link: {e}")
-            # Fallback: send as link
-            await callback.message.answer(
-                f"{' • '.join(caption_parts)}\n\n"
-                f"🔗 Прямая ссылка:\n{stream_data.cdn_url}\n\n"
-                f"💡 Откройте в браузере",
-                disable_web_page_preview=False
-            )
-            await callback.message.delete()
-            await state.clear()
+        await callback.message.delete()
+        await state.clear()
 
     except RezkaServiceError as e:
         logger.error(f"Stream extraction error: {e}")
