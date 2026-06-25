@@ -19,14 +19,14 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy HdRezka library
-COPY ../rezka_lib /app/rezka_lib
+# Copy HdRezka library from parent directory
+COPY rezka_lib /app/rezka_lib
 
 # Install HdRezka dependencies
 RUN pip install --no-cache-dir requests beautifulsoup4
 
-# Copy application code
-COPY . .
+# Copy application code from bot directory
+COPY bot/ /app/
 
 # Create data directory for cache
 RUN mkdir -p /app/data
