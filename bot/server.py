@@ -42,7 +42,7 @@ PROXY_HEADERS = {
 
 async def stream_video(cdn_url: str, range_header: str = None) -> AsyncGenerator[bytes, None]:
     """
-    Stream video from CDN with proper headers
+    Stream video from CDN with proper headers and proxy
 
     Args:
         cdn_url: Target CDN URL
@@ -57,8 +57,16 @@ async def stream_video(cdn_url: str, range_header: str = None) -> AsyncGenerator
 
     timeout = aiohttp.ClientTimeout(total=None, connect=30)
 
+    # Use proxy if configured
+    proxy_url = config.rezka.proxy_url if config.rezka.proxy_url else None
+
     try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        connector = None
+        if proxy_url:
+            from aiohttp_socks import ProxyConnector
+            connector = ProxyConnector.from_url(proxy_url)
+
+        async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
             async with session.get(cdn_url, headers=headers) as response:
                 if response.status not in (200, 206):
                     logger.error(f"CDN returned status {response.status} for {cdn_url}")
