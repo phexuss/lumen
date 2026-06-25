@@ -1,0 +1,21 @@
+# HDRezka Telegram Bot Requirements
+# Python 3.11+ required for TaskGroup and ExceptionGroup
+
+# Core Framework
+aiogram==3.7.0
+aiohttp==3.9.5
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+
+# Database (for SQLite cache)
+aiosqlite==0.20.0
+
+# Streaming and HTTP
+python-multipart==0.0.9
+
+# Original HdRezkaApi dependencies (already installed)
+# requests==2.34.2
+# beautifulsoup4==4.15.0
+
+# Utilities
+python-dotenv==1.0.1

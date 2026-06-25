@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  rezkabot:
+    build:
+      context: ..
+      dockerfile: bot/Dockerfile.prod
+    container_name: rezkabot
+    restart: unless-stopped
+    ports:
+      - "8080:8080"  # Изменить если порт занят
+    environment:
+      # Telegram Bot
+      - BOT_TOKEN=${BOT_TOKEN}
+
+      # Public URL (твой домен через Cloudflare Tunnel)
+      - PUBLIC_URL=${PUBLIC_URL}
+
+      # Server settings
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+
+      # Admin IDs
+      - ADMIN_IDS=${ADMIN_IDS}
+
+      # HDRezka settings
+      - REZKA_MIRROR=${REZKA_MIRROR:-https://hdrezka-home.tv}
+      - REZKA_TIMEOUT=30
+      - REZKA_MAX_RETRIES=3
+      - REZKA_PROXY_URL=${REZKA_PROXY_URL:-}
+
+      # Cache (используем SQLite для персистентности)
+      - CACHE_ENABLED=true
+      - CACHE_BACKEND=sqlite
+      - CACHE_SQLITE_PATH=/app/data/cache.db
+    volumes:
+      # Персистентное хранилище для кэша
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - rezkabot-network
+
+networks:
+  rezkabot-network:
+    driver: bridge
