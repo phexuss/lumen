@@ -484,13 +484,10 @@ async def handle_resolution_selection(callback: CallbackQuery, state: FSMContext
                 resolution=resolution
             )
 
-        # Construct proxy URL (through Cloudflare)
-        encoded_cdn_url = quote(stream_data.cdn_url, safe='')
-        proxy_url = f"{config.server.public_url}/stream?url={encoded_cdn_url}"
+        # Try sending CDN URL directly first, fallback to proxy if fails
+        logger.info(f"Sending video directly from CDN: {stream_data.cdn_url[:100]}...")
 
-        logger.info(f"Sending video via proxy: {proxy_url[:100]}...")
-
-        # Send video through proxy
+        # Send video with direct CDN URL
         caption_parts = [f"📺 {stream_data.title}"]
         if stream_data.season and stream_data.episode:
             caption_parts.append(f"S{stream_data.season:02d}E{stream_data.episode:02d}")
@@ -499,7 +496,7 @@ async def handle_resolution_selection(callback: CallbackQuery, state: FSMContext
 
         try:
             sent_message = await callback.message.answer_video(
-                video=proxy_url,
+                video=stream_data.cdn_url,
                 caption=" • ".join(caption_parts),
                 supports_streaming=True
             )
